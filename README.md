@@ -1,7 +1,5 @@
 # mujoco_for_genloco
 
-GenLoco 风格的 A1 策略在 **MuJoCo** 下单机推理；观测与 `q_des = offset + scale * action`、PD 增益与 `[train/a1_cfg.py](train/a1_cfg.py)` 中 Isaac 训练配置对齐。
-
 ## 环境
 
 ```bash
@@ -24,10 +22,6 @@ python -m infer.run --checkpoint /path/to/policy.pt --motion motion/a1_pace.txt
 ```bash
 python -m infer.run --checkpoint /path/to/policy.pt --motion motion/a1_pace.txt --viewer
 ```
-
-无 `--viewer` 时后台一直跑，用 `Ctrl+C` 结束；带 `--viewer` 时关闭 MuJoCo 窗口即结束。**在可视化模式下按 GUI Reset**（仿真时间回退）时，会顺带执行 `mj_resetData`、`reset_pose`（与 `[train/a1_cfg.py](train/a1_cfg.py)` 初始位姿一致）、清空观测历史，并把 motion 相位用的控制步计数归零。
-
-常用参数见 `python -m infer.run --help`。主循环按 **实时** 对齐：每个控制周期墙钟力求接近 `decimation×timestep`（默认约 **10 ms**，与训练控制步长一致）。
 
 **说明**：`checkpoint` 内需含名字里带 `actor` 或 `policy` 的线性层权重（与 RSL / Isaac 导出习惯一致）；否则需改 `[infer/policy_mlp.py](infer/policy_mlp.py)` 里的键过滤逻辑。
 
@@ -61,9 +55,4 @@ python scripts/adjust_a1_leg_length.py --legs RR RL --part both --thigh 0.2 --ca
 | `[scripts/](scripts/)` | `adjust_a1_leg_length.py`：按腿、按段改 URDF 腿长                             |
 | `[robots/](robots/)`   | A1 URDF 与 mesh                                                       |
 
-
-## 时间与力矩
-
-- 物理步：`timestep`（默认 0.001 s），每步调用 `mj_step`。
-- 控制步：`decimation × timestep`（默认 10×0.001 = 0.01 s）；每控制步算一次观测与网络，得到本步的 `q_des`；在每个 **物理子步**（`mj_step` 前）用当前 `q`、`q̇` **重算 PD 力矩**（`q_des` 在整段 `decimation` 内不变，与训练上策略仍按控制频率更新一致）。
 
