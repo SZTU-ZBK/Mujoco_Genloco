@@ -48,8 +48,7 @@ python scripts/adjust_a1_leg_length.py --legs RR RL --part both --thigh 0.2 --ca
 
 | 路径                     | 说明                                                                   |
 | ---------------------- | -------------------------------------------------------------------- |
-| `[train/](train/)`     | 训练侧配置与 motion 加载（`a1_cfg.py`、`motion_loader.py`、`gen_loco_env.py` 等） |
-| `[infer/](infer/)`     | MuJoCo：`urdf_to_mjcf`、机器人与 PD、观测缓冲、`.pt` Actor、入口 `run.py`           |
+| `[infer/](infer/)`     | MuJoCo：`urdf_to_mjcf`、机器人与 PD、观测缓冲、`.pt` Actor、`run.py`；与训练对齐的常量见 `infer/genloco_a1_cfg.py`，参考运动加载见 `infer/genloco_motion.py` |
 | `[scripts/](scripts/)` | `adjust_a1_leg_length.py`：按腿、按段改 URDF 腿长                             |
 | `[robots/](robots/)`   | A1 URDF 与 mesh                                                       |
 

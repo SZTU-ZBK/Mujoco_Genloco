@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import sys
 import time
 from pathlib import Path
 
@@ -14,17 +13,14 @@ import mujoco
 
 
 _REPO = Path(__file__).resolve().parents[1]
-if str(_REPO) not in sys.path:
-    sys.path.insert(0, str(_REPO))
 
-from train.a1_cfg import GenLocoA1Cfg  # noqa: E402
-from train.motion_loader import GenLocoMotionLoader  # noqa: E402
-
-from infer.genloco_obs import GenLocoObsBuffer  # noqa: E402
-from infer.mujoco_a1 import MuJoCoA1  # noqa: E402
-from infer.policy_mlp import infer_actions, load_actor_mlp  # noqa: E402
-from infer.quat_np import quat_xyzw_to_euler_xyz  # noqa: E402
-from infer.urdf_to_mjcf import generate_a1_mjcf_from_urdf  # noqa: E402
+from infer.genloco_a1_cfg import GenLocoA1Cfg
+from infer.genloco_motion import GenLocoMotionLoader
+from infer.genloco_obs import GenLocoObsBuffer
+from infer.mujoco_a1 import MuJoCoA1
+from infer.policy_mlp import infer_actions, load_actor_mlp
+from infer.quat_np import quat_xyzw_to_euler_xyz
+from infer.urdf_to_mjcf import generate_a1_mjcf_from_urdf
 
 
 def _step(
