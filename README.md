@@ -25,9 +25,7 @@ python -m infer.run --checkpoint /path/to/policy.pt --motion motion/a1_pace.txt 
 
 **说明**：`checkpoint` 内需含名字里带 `actor` 或 `policy` 的线性层权重（与 RSL / Isaac 导出习惯一致）；否则需改 `[infer/policy_mlp.py](infer/policy_mlp.py)` 里的键过滤逻辑。
 
-## URDF 腿长（可选）
-
-脚本 `[scripts/adjust_a1_leg_length.py](scripts/adjust_a1_leg_length.py)` 按计划调整 **关节轴向长度**（`*_lower_joint` / `*_toe_fixed` 的 `-Z` 偏移）与 **小腿/大腿碰撞盒**的第一维长度，**不改变**盒子的横向截面尺寸（后两维不变）。默认读仓库里的 `[robots/a1/a1_description/urdf/a1.urdf](robots/a1/a1_description/urdf/a1.urdf)`，**默认写出到当前目录** `./a1.urdf`（可用 `-o` 改路径）。
+## 修改URDF 腿长（可选）
 
 ```bash
 # 只看参数说明
