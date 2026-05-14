@@ -56,7 +56,7 @@ ACTION_UPPER = (
     4.18879020479,
     -0.916297857297,
 )
-LEGACY_ACTION_LIMIT = (0.5,) * 12
+ACTION_LIMIT = (2.0,) * 12
 
 PD_STIFFNESS = (100.0, 100.0, 100.0) * 4
 PD_DAMPING = (1.0, 2.0, 2.0) * 4
@@ -76,7 +76,7 @@ class GenLocoA1Cfg:
     init_joint_positions: tuple[float, ...] = INIT_MOTOR_ANGLES
     action_lower: tuple[float, ...] = ACTION_LOWER
     action_upper: tuple[float, ...] = ACTION_UPPER
-    legacy_action_limit: tuple[float, ...] = LEGACY_ACTION_LIMIT
+    action_limit: tuple[float, ...] = ACTION_LIMIT
     stiffness: tuple[float, ...] = PD_STIFFNESS
     damping: tuple[float, ...] = PD_DAMPING
 

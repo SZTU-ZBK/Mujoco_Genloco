@@ -2,3 +2,7 @@
 model/*
 *.pyc
 *.zip
+venv/
+*.pt
+GenLoco/
+ai.sh

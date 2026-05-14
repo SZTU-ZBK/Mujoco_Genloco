@@ -104,13 +104,48 @@ class MuJoCoA1:
         tau = np.clip(tau, -lim, lim)
         self.data.ctrl[self.layout.ctrl_adr] = tau
 
-    def step_substeps(self, n: int, q_des: np.ndarray) -> None:
-        """Advance ``n`` physics steps; recompute PD torque before each ``mj_step`` (same ``q_des``)."""
+    def step_substeps(
+        self,
+        n: int,
+        q_des: np.ndarray,
+        last_q_des: np.ndarray | None = None,
+        *,
+        max_delta_per_step: float | None = None,
+    ) -> None:
+        """Advance ``n`` physics steps; recompute PD torque before each ``mj_step``.
+
+        If ``last_q_des`` is provided, linearly interpolate between it and
+        ``q_des`` across the substeps (matches PyBullet training-side
+        ``enable_action_interpolation`` behaviour).
+        """
 
         q_des = np.asarray(q_des, dtype=np.float64).reshape(-1)
-        for _ in range(n):
-            self.apply_pd(q_des)
-            mujoco.mj_step(self.model, self.data)
+        if last_q_des is None:
+            for _ in range(n):
+                interp = q_des
+                if max_delta_per_step is not None:
+                    current_q = self.joint_positions()
+                    interp = np.clip(
+                        interp,
+                        current_q - max_delta_per_step,
+                        current_q + max_delta_per_step,
+                    )
+                self.apply_pd(interp)
+                mujoco.mj_step(self.model, self.data)
+        else:
+            last_q_des = np.asarray(last_q_des, dtype=np.float64).reshape(-1)
+            for i in range(n):
+                lerp = float(i + 1) / float(n)
+                interp = last_q_des + lerp * (q_des - last_q_des)
+                if max_delta_per_step is not None:
+                    current_q = self.joint_positions()
+                    interp = np.clip(
+                        interp,
+                        current_q - max_delta_per_step,
+                        current_q + max_delta_per_step,
+                    )
+                self.apply_pd(interp)
+                mujoco.mj_step(self.model, self.data)
 
     def reset_pose(self, root_pos: tuple[float, float, float], quat_wxyz: tuple[float, float, float, float], joint_pos: np.ndarray) -> None:
         d = self.data

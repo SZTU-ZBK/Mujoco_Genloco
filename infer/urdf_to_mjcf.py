@@ -179,7 +179,7 @@ def generate_a1_mjcf_from_urdf(
     lines: list[str] = []
     lines.append('<mujoco model="a1_genloco">')
     lines.append(f'  <compiler angle="radian" autolimits="true" meshdir="{meshdir.as_posix()}/" eulerseq="xyz"/>')
-    lines.append(f'  <option timestep="{timestep}" gravity="0 0 -9.81" integrator="implicitfast"/>')
+    lines.append(f'  <option timestep="{timestep}" gravity="0 0 -10" integrator="implicitfast"/>')
     lines.append('  <visual><map force="0.01"/></visual>')
     lines.append("  <default>")
     lines.append('    <default class="vis"><geom group="1" type="mesh" contype="0" conaffinity="0"/></default>')
@@ -205,7 +205,7 @@ def generate_a1_mjcf_from_urdf(
     lines.append("  <worldbody>")
     lines.append(
         '    <geom name="floor" type="plane" size="40 40 0.05" material="mat_floor" group="0"'
-        ' condim="3" friction="1.05 0.05 0.002" rgba="1 1 1 1"/>'
+        ' condim="3" friction="0.9 0.05 0.002" rgba="1 1 1 1"/>'
     )
     lines.append(
         '    <light name="sun" directional="true" pos="8 8 14" dir="-0.38 -0.38 -1"'
