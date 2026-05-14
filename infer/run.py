@@ -53,6 +53,7 @@ def _step(
 
     q_des = offset + scale * np.asarray(a, dtype=np.float64)
 
+    # Match PyBullet training-side action filter (enable_action_filter=True)
     if action_filter is not None:
         q_des = action_filter.filter(q_des)
 
@@ -91,6 +92,7 @@ def main() -> None:
     policy = load_actor_mlp(args.checkpoint, device)
     obs_buf = GenLocoObsBuffer(history_length=15)
 
+    # Initialise obs buffer with replicated reset pose (matches training-side on_reset)
     init_rpy = np.array([0.0, 0.0, 0.0], dtype=np.float32)
     init_gyro = np.array([0.0, 0.0, 0.0], dtype=np.float32)
     init_actions = np.zeros(12, dtype=np.float32)
@@ -107,6 +109,11 @@ def main() -> None:
         if wait > 0:
             time.sleep(wait)
 
+    # Frequency monitor state
+    freq_log_interval = 2.0  # seconds
+    freq_next_log = time.perf_counter() + freq_log_interval
+    freq_step_count = 0
+
     last_q_des = offset.copy()
     action_filter = ActionFilterButter(12)
     action_filter.init_history(offset)
@@ -114,10 +121,27 @@ def main() -> None:
     if args.viewer:
         import mujoco.viewer
 
+        # Ghost model for reference-motion visualization
+        ghost_model = mujoco.MjModel.from_xml_string(mjcf)
+        ghost_data = mujoco.MjData(ghost_model)
+        ghost_body_ids = {
+            name: mujoco.mj_name2id(ghost_model, mujoco.mjtObj.mjOBJ_BODY, name)
+            for name in ["trunk", "FR_toe", "FL_toe", "RR_toe", "RL_toe"]
+        }
+
         step = 0
         last_sim_time = -1.0
         with mujoco.viewer.launch_passive(robot.model, robot.data) as viewer:
             while viewer.is_running():
+                t0 = time.perf_counter()
+
+                t = float(step) * step_dt
+                ts = torch.tensor([t], dtype=torch.float32)
+                sample = loader.sample(ts)
+                ref_pos = sample.root_pos.cpu().numpy().flatten()
+                ref_quat_xyzw = sample.root_quat_xyzw.cpu().numpy().flatten()
+                ref_joints = sample.joint_pos.cpu().numpy().flatten()
+
                 with viewer.lock():
                     viewer.sync()
                     t_now = float(robot.data.time)
@@ -133,7 +157,31 @@ def main() -> None:
                         step = 0
                         t_now = float(robot.data.time)
 
-                t0 = time.perf_counter()
+                    # Update ghost to reference motion state
+                    free_adr = ghost_model.jnt_qposadr[ghost_model.body_jntadr[ghost_body_ids["trunk"]]]
+                    ghost_data.qpos[free_adr : free_adr + 3] = ref_pos
+                    ghost_data.qpos[free_adr + 3 : free_adr + 7] = [
+                        ref_quat_xyzw[3], ref_quat_xyzw[0], ref_quat_xyzw[1], ref_quat_xyzw[2]
+                    ]
+                    for i, name in enumerate(robot_cfg.motor_names):
+                        jid = mujoco.mj_name2id(ghost_model, mujoco.mjtObj.mjOBJ_JOINT, name)
+                        ghost_data.qpos[ghost_model.jnt_qposadr[jid]] = ref_joints[i]
+                    mujoco.mj_forward(ghost_model, ghost_data)
+
+                    # Draw translucent ghost spheres at trunk and toes
+                    scn = viewer.user_scn
+                    scn.ngeom = 0
+                    for name, bid in ghost_body_ids.items():
+                        pos = ghost_data.xpos[bid]
+                        size = 0.055 if name == "trunk" else 0.025
+                        rgba = (0.2, 0.8, 0.4, 0.35) if name == "trunk" else (0.2, 0.6, 0.9, 0.35)
+                        g = scn.geoms[scn.ngeom]
+                        g.type = mujoco.mjtGeom.mjGEOM_SPHERE
+                        g.size[:] = [size, 0.0, 0.0]
+                        g.pos[:] = pos
+                        g.rgba[:] = rgba
+                        scn.ngeom += 1
+
                 q_des = _step(robot, loader, policy, obs_buf, offset, scale, device, step, step_dt, clip, action_filter)
                 robot.step_substeps(args.decimation, q_des, last_q_des, max_delta_per_step=0.2)
                 last_q_des = q_des.copy()
@@ -141,6 +189,16 @@ def main() -> None:
                 pace_realtime(t0)
                 step += 1
                 last_sim_time = float(robot.data.time)
+
+                # Frequency logging
+                freq_step_count += 1
+                now = time.perf_counter()
+                if now >= freq_next_log:
+                    actual_dt = (now - (freq_next_log - freq_log_interval)) / freq_step_count
+                    print(f"[freq] steps={freq_step_count}  avg_dt={actual_dt*1000:.2f}ms  "
+                          f"target_dt={step_dt*1000:.2f}ms  freq={1.0/actual_dt:.1f}Hz")
+                    freq_next_log = now + freq_log_interval
+                    freq_step_count = 0
     else:
         step = 0
         try:
@@ -151,6 +209,16 @@ def main() -> None:
                 last_q_des = q_des.copy()
                 pace_realtime(t0)
                 step += 1
+
+                # Frequency logging
+                freq_step_count += 1
+                now = time.perf_counter()
+                if now >= freq_next_log:
+                    actual_dt = (now - (freq_next_log - freq_log_interval)) / freq_step_count
+                    print(f"[freq] steps={freq_step_count}  avg_dt={actual_dt*1000:.2f}ms  "
+                          f"target_dt={step_dt*1000:.2f}ms  freq={1.0/actual_dt:.1f}Hz")
+                    freq_next_log = now + freq_log_interval
+                    freq_step_count = 0
         except KeyboardInterrupt:
             pass
 
