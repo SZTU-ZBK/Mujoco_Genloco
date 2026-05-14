@@ -68,7 +68,7 @@ def main() -> None:
     p.add_argument("--device", type=str, default="cpu")
     p.add_argument("--action_clip", type=float, default=1.0)
     p.add_argument("--decimation", type=int, default=33)
-    p.add_argument("--timestep", type=float, default=0.001")
+    p.add_argument("--timestep", type=float, default=0.001)
     p.add_argument("--viewer", action="store_true")
     args = p.parse_args()
 
